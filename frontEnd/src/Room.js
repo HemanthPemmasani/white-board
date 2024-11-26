@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import Canvas from "./Canvas";
+import jsPDF from "jspdf";
+import Chatbox from "./Chatbox";
 
 const Room = ({ userNo, socket, setUsers, setUserNo }) => {
   const canvasRef = useRef(null);
@@ -15,6 +17,7 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
       toast.info(data.message);
     });
   }, []);
+
   useEffect(() => {
     socket.on("users", (data) => {
       setUsers(data);
@@ -39,6 +42,7 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
       prevElements.filter((ele, index) => index !== elements.length - 1)
     );
   };
+
   const redo = () => {
     setElements((prevElements) => [
       ...prevElements,
@@ -48,11 +52,28 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
       prevHistory.filter((ele, index) => index !== history.length - 1)
     );
   };
+
+  const exportToPDF = () => {
+    const canvas = canvasRef.current;
+
+    // Create a jsPDF instance
+    const pdf = new jsPDF("landscape");
+
+    // Convert the canvas to an image
+    const imgData = canvas.toDataURL("image/png");
+
+    // Add the image to the PDF
+    pdf.addImage(imgData, "PNG", 10, 10, 280, 140);
+
+    // Save the PDF
+    pdf.save("drawing.pdf");
+  };
+
   return (
     <div className="container-fluid">
       <div className="row">
         <h1 className="display-5 pt-4 pb-3 text-center">
-          React Drawing App - users online:{userNo}
+          React Drawing App - users online: {userNo}
         </h1>
       </div>
       <div className="row justify-content-center align-items-center text-center py-2">
@@ -75,8 +96,7 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
               id="pencil"
               value="pencil"
               checked={tool === "pencil"}
-              onClick={(e) => setTool(e.target.value)}
-              readOnly={true}
+              onChange={(e) => setTool(e.target.value)}
             />
             <label className="form-check-label" htmlFor="pencil">
               Pencil
@@ -87,11 +107,24 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
               className="form-check-input"
               type="radio"
               name="tools"
+              id="eraser"
+              value="eraser"
+              checked={tool === "eraser"}
+              onChange={(e) => setTool(e.target.value)}
+            />
+            <label className="form-check-label" htmlFor="eraser">
+              Eraser
+            </label>
+          </div>
+          <div className="form-check form-check-inline">
+            <input
+              className="form-check-input"
+              type="radio"
+              name="tools"
               id="line"
               value="line"
               checked={tool === "line"}
-              onClick={(e) => setTool(e.target.value)}
-              readOnly={true}
+              onChange={(e) => setTool(e.target.value)}
             />
             <label className="form-check-label" htmlFor="line">
               Line
@@ -105,15 +138,27 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
               id="rect"
               value="rect"
               checked={tool === "rect"}
-              onClick={(e) => setTool(e.target.value)}
-              readOnly={true}
+              onChange={(e) => setTool(e.target.value)}
             />
             <label className="form-check-label" htmlFor="rect">
               Rectangle
             </label>
           </div>
+          <div className="form-check form-check-inline">
+            <input
+              className="form-check-input"
+              type="radio"
+              name="tools"
+              id="text"
+              value="text"
+              checked={tool === "text"}
+              onChange={(e) => setTool(e.target.value)}
+            />
+            <label className="form-check-label" htmlFor="text">
+              Text
+            </label>
+          </div>
         </div>
-
         <div className="col-md-2">
           <button
             type="button"
@@ -143,6 +188,19 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
             />
           </div>
         </div>
+        <button
+          onClick={exportToPDF}
+          style={{
+            marginLeft: "3px",
+            fontSize: "16px",
+            height: "37px",
+            width: "120px",
+            backgroundColor: "blue",
+            color: "white",
+          }}
+        >
+          DownloadPDF
+        </button>
       </div>
       <div className="row">
         <Canvas
@@ -155,8 +213,12 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
           socket={socket}
         />
       </div>
+      <Chatbox/>
+      
     </div>
   );
 };
 
 export default Room;
+
+

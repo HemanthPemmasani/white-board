@@ -5,6 +5,7 @@
   "dependencies": {
     "@popperjs/core": "^2.9.2",
     "bootstrap": "^5.0.2",
+    "jspdf": "^2.5.2",
     "react": "^17.0.0",
     "react-copy-to-clipboard": "^5.0.3",
     "react-dom": "^17.0.0",
@@ -19,7 +20,7 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "react-scripts": "latest"
+    "react-scripts": "^5.0.1"
   },
   "browserslist": {
     "production": [
