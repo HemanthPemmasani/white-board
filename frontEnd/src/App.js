@@ -5,7 +5,7 @@ import ClientRoom from "./ClientRoom";
 import JoinCreateRoom from "./JoinCreateRoom";
 import Room from "./Room";
 import Sidebar from "./Sidebar";
-
+import Chatbox from "./Chatbox";
 import "./style.css";
 
 const server = "http://localhost:5000";
@@ -64,6 +64,7 @@ const App = () => {
               setUsers={setUsers}
               setUserNo={setUserNo}
             />
+            
           ) : (
             <ClientRoom
               userNo={userNo}

@@ -1,34 +1,46 @@
 import React, { useState, useEffect } from "react";
-import io from "socket.io-client";
 
-const socket = io("http://localhost:5000"); // Replace with your server URL
-
-const Chatbox = () => {
+const Chatbox = ({ socket }) => {
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
 
-  // Listen for incoming messages from other users or the sender
+  // Listen for incoming messages and system notifications
   useEffect(() => {
-    // Listen for the 'message' event from the server
-    socket.on("message", (message) => {
+    // Listen for the 'message' event for chat messages
+    socket.on("message", (data) => {
       setChatMessages((prevMessages) => [
         ...prevMessages,
-        `${message.username}: ${message.message}`, // Combine the username and message
+        `${data.username}: ${data.message}`, // Add the received message
       ]);
+    });
+
+    // Listen for 'user-status' event for join/leave notifications
+    socket.on("user-status", (data) => {
+      // Add system notification to the chat
+      setChatMessages((prevMessages) => [
+        ...prevMessages,
+        `System: ${data.message}`, // Add the notification message
+      ]);
+      // Show a popup for join/leave messages
+      alert(data.message);
     });
 
     // Clean up when the component unmounts
     return () => {
       socket.off("message");
+      socket.off("user-status");
     };
-  }, []);
+  }, [socket]);
 
+  // Handle chat submission
   const handleChatSubmit = (e) => {
     e.preventDefault();
     if (currentMessage.trim()) {
       // Emit the message to the server
-      socket.emit("send-message", currentMessage);
-      setCurrentMessage(""); // Clear the input after sending
+      socket.emit("messageResponse", currentMessage);
+
+      // Clear the input field
+      setCurrentMessage("");
     }
   };
 
@@ -76,7 +88,9 @@ const Chatbox = () => {
             style={{
               marginBottom: "10px",
               padding: "8px",
-              backgroundColor: "#e0e0e0",
+              backgroundColor: msg.startsWith("System:")
+                ? "#ffd700" // Highlight system notifications
+                : "#e0e0e0",
               borderRadius: "10px",
               fontSize: "14px",
               wordWrap: "break-word",

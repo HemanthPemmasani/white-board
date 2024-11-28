@@ -38,10 +38,8 @@ const ClientRoom = ({ userNo, socket, setUsers, setUserNo }) => {
         <div className="col-md-7 mx-auto overflow-hidden border border-dark px-0  mt-3" style={{ height: "500px" }}>
           <img className="w-100 h-100" ref={imgRef} src="" alt="canvas" />
         </div>
-
-        {/* Right side: Chatbox */}
-        <div  className="col-md-3 ml-1">
-          <Chatbox />
+        <div>
+          <Chatbox socket={socket}/>
         </div>
       </div>
     </div>
