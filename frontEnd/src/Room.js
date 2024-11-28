@@ -111,7 +111,7 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
               id="eraser"
               value="eraser"
               checked={tool === "eraser"}
-              onChange={(e) => setTool(e.target.value)}
+              onChange={(e) => setTool(e.target.value)}  
             />
             <label className="form-check-label" htmlFor="eraser">
               Eraser
