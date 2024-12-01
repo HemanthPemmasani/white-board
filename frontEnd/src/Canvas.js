@@ -1,14 +1,13 @@
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import rough from "roughjs/bundled/rough.esm";
-import jsPDF from "jspdf";
 
 const generator = rough.generator();
 
-const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, socket }) => {
+const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool }) => {
   const [isDrawing, setIsDrawing] = useState(false);
-  const [currentText, setCurrentText] = useState("");  // Holds current text being typed
-  const [textPosition, setTextPosition] = useState(null); // Text insertion position
-  const [lineHeight, setLineHeight] = useState(30);  // For line spacing
+  const [currentText, setCurrentText] = useState(""); // For text typing
+  const [textPosition, setTextPosition] = useState(null); // Position for text
+  const [lineHeight, setLineHeight] = useState(30); // Line spacing
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -16,18 +15,16 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, socket }) 
     canvas.width = window.innerWidth * 2;
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
-    const context = canvas.getContext("2d");
 
-    context.strokeWidth = 5;
+    const context = canvas.getContext("2d");
     context.scale(2, 2);
     context.lineCap = "round";
-    context.strokeStyle = color;
-    context.lineWidth = 5;
     ctx.current = context;
-  }, []);
+  }, [canvasRef, ctx]);
 
   useEffect(() => {
     ctx.current.strokeStyle = color;
+    ctx.current.fillStyle = color;
   }, [color]);
 
   const handleMouseDown = (e) => {
@@ -44,111 +41,39 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, socket }) 
           element: tool,
         },
       ]);
-    } else if (tool === "text") {
-      setTextPosition({ offsetX, offsetY });
-      setCurrentText("");  // Clear the current text for new typing
-    } else {
+    } else if (tool === "line" || tool === "rect") {
       setElements((prevElements) => [
         ...prevElements,
-        { offsetX, offsetY, stroke: color, element: tool },
+        {
+          offsetX,
+          offsetY,
+          width: 0,
+          height: 0,
+          stroke: color,
+          element: tool,
+        },
       ]);
+    } else if (tool === "text") {
+      finalizeText(); // Save any ongoing text
+      setTextPosition({ offsetX, offsetY });
+      setCurrentText(""); // Start typing fresh text
     }
 
     setIsDrawing(true);
   };
 
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (tool === "text" && textPosition) {
-        if (e.key === "Enter") {
-          setCurrentText((prevText) => prevText + "\n");  // Add new line on Enter
-        } else if (e.key === "Backspace") {
-          // Fix: Backspace will now properly remove the last character
-          setCurrentText((prevText) => prevText.slice(0, -1));
-        } else {
-          setCurrentText((prevText) => prevText + e.key);  // Add typed character
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => {
-      window.removeEventListener("keydown", handleKeyPress);
-    };
-  }, [tool, textPosition]);
-
-  useLayoutEffect(() => {
-    const roughCanvas = rough.canvas(canvasRef.current);
-    if (elements.length > 0) {
-      ctx.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
-
-    // Draw all elements, including text
-    elements.forEach((ele) => {
-      if (ele.element === "rect") {
-        roughCanvas.draw(
-          generator.rectangle(ele.offsetX, ele.offsetY, ele.width, ele.height, {
-            stroke: ele.stroke,
-            roughness: 0,
-            strokeWidth: 5,
-          })
-        );
-      } else if (ele.element === "line") {
-        roughCanvas.draw(
-          generator.line(ele.offsetX, ele.offsetY, ele.width, ele.height, {
-            stroke: ele.stroke,
-            roughness: 0,
-            strokeWidth: 5,
-          })
-        );
-      } else if (ele.element === "pencil" || ele.element === "eraser") {
-        roughCanvas.linearPath(ele.path, {
-          stroke: ele.stroke,
-          roughness: 0,
-          strokeWidth: 5,
-        });
-      } else if (ele.element === "text") {
-        ctx.current.font = "20px Arial";
-        ctx.current.fillStyle = ele.stroke;
-        ctx.current.fillText(ele.text, ele.offsetX, ele.offsetY);
-      }
-    });
-
-    // Draw the current text being typed (if any)
-    if (textPosition && currentText) {
-      const textLines = currentText.split("\n");
-      let yOffset = textPosition.offsetY;
-
-      ctx.current.font = "20px Arial";
-      ctx.current.fillStyle = color;
-
-      // Draw each line of text
-      textLines.forEach((line) => {
-        ctx.current.fillText(line, textPosition.offsetX, yOffset);
-        yOffset += lineHeight;  // Move to the next line
-      });
-    }
-
-    const canvasImage = canvasRef.current.toDataURL();
-    socket.emit("drawing", canvasImage);
-  }, [elements, currentText, textPosition]);
-
   const handleMouseMove = (e) => {
-    if (!isDrawing || tool === "text") return;
+    if (!isDrawing) return;
 
     const { offsetX, offsetY } = e.nativeEvent;
 
-    if (tool === "rect") {
+    if (tool === "pencil" || tool === "eraser") {
       setElements((prevElements) =>
         prevElements.map((ele, index) =>
           index === elements.length - 1
             ? {
-                offsetX: ele.offsetX,
-                offsetY: ele.offsetY,
-                width: offsetX - ele.offsetX,
-                height: offsetY - ele.offsetY,
-                stroke: ele.stroke,
-                element: ele.element,
+                ...ele,
+                path: [...ele.path, [offsetX, offsetY]],
               }
             : ele
         )
@@ -158,26 +83,21 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, socket }) 
         prevElements.map((ele, index) =>
           index === elements.length - 1
             ? {
-                offsetX: ele.offsetX,
-                offsetY: ele.offsetY,
+                ...ele,
                 width: offsetX,
                 height: offsetY,
-                stroke: ele.stroke,
-                element: ele.element,
               }
             : ele
         )
       );
-    } else if (tool === "pencil" || tool === "eraser") {
+    } else if (tool === "rect") {
       setElements((prevElements) =>
         prevElements.map((ele, index) =>
           index === elements.length - 1
             ? {
-                offsetX: ele.offsetX,
-                offsetY: ele.offsetY,
-                path: [...ele.path, [offsetX, offsetY]],
-                stroke: ele.stroke,
-                element: ele.element,
+                ...ele,
+                width: offsetX - ele.offsetX,
+                height: offsetY - ele.offsetY,
               }
             : ele
         )
@@ -188,8 +108,13 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, socket }) 
   const handleMouseUp = () => {
     setIsDrawing(false);
 
-    // Save the typed text when the user stops drawing
-    if (tool === "text" && currentText) {
+    if (tool === "text") {
+      finalizeText(); // Save the text on mouse up
+    }
+  };
+
+  const finalizeText = () => {
+    if (tool === "text" && textPosition && currentText) {
       setElements((prevElements) => [
         ...prevElements,
         {
@@ -205,29 +130,108 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, socket }) 
     }
   };
 
-  const exportToPDF = () => {
-    const canvas = canvasRef.current;
-    const pdf = new jsPDF("landscape");
-    const imgData = canvas.toDataURL("image/png");
-    pdf.addImage(imgData, "PNG", 10, 10, 280, 140);
-    pdf.save("drawing.pdf");
+  const handleKeyPress = (e) => {
+    if (tool === "text" && textPosition) {
+      if (e.key === "Enter") {
+        setCurrentText((prev) => prev + "\n"); // Add newline
+      } else if (e.key === "Backspace") {
+        setCurrentText((prev) => prev.slice(0, -1)); // Remove last character
+      } else if (e.key.length === 1) {
+        setCurrentText((prev) => prev + e.key); // Add character
+      }
+    }
   };
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [tool, textPosition]);
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !ctx.current) return; // Check if canvas or context is not available
+
+    const roughCanvas = rough.canvas(canvas);
+    ctx.current.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas only if context exists
+
+    elements.forEach((ele) => {
+      if (ele.element === "rect") {
+        roughCanvas.draw(
+          generator.rectangle(ele.offsetX, ele.offsetY, ele.width, ele.height, {
+            stroke: ele.stroke,
+            roughness: 0,
+            strokeWidth: 2,
+          })
+        );
+      } else if (ele.element === "line") {
+        roughCanvas.draw(
+          generator.line(ele.offsetX, ele.offsetY, ele.width, ele.height, {
+            stroke: ele.stroke,
+            roughness: 0,
+            strokeWidth: 2,
+          })
+        );
+      } else if (ele.element === "pencil" || ele.element === "eraser") {
+        roughCanvas.linearPath(ele.path, {
+          stroke: ele.stroke,
+          roughness: 0,
+          strokeWidth: 2,
+        });
+      } else if (ele.element === "text") {
+        const lines = ele.text.split("\n");
+        let yOffset = ele.offsetY;
+
+        ctx.current.font = "20px Arial";
+        ctx.current.fillStyle = ele.stroke;
+
+        lines.forEach((line) => {
+          ctx.current.fillText(line, ele.offsetX, yOffset);
+          yOffset += lineHeight;
+        });
+      }
+    });
+
+    // Draw the current text being typed
+    if (textPosition && currentText) {
+      const lines = currentText.split("\n");
+      let yOffset = textPosition.offsetY;
+
+      ctx.current.font = "20px Arial";
+      ctx.current.fillStyle = color;
+
+      lines.forEach((line) => {
+        ctx.current.fillText(line, textPosition.offsetX, yOffset);
+        yOffset += lineHeight;
+      });
+    }
+  }, [elements, currentText, textPosition, color, lineHeight, canvasRef, ctx]);
 
   return (
     <div>
-      {/* Canvas */}
       <div
         className="col-md-8 overflow-hidden border border-dark px-0 mx-auto mt-3"
-        style={{ height: "500px" }}
+        style={{
+          height: "500px",
+          width: "1100px",
+          marginLeft: "100px",
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        tabIndex="0" // Ensures focus for keyboard events
       >
         <canvas ref={canvasRef} />
       </div>
-
     </div>
   );
 };
 
 export default Canvas;
+
+
+
+
+
+
