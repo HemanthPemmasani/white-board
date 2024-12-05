@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import Chatbox from "./Chatbox";
 
-const ClientRoom = ({ userNo, socket, setUsers, setUserNo }) => {
+const ClientRoom = ({ userNo, socket, setUsers, setUserNo ,roomJoined, setRoomJoined }) => {
   const imgRef = useRef(null);
 
   useEffect(() => {
@@ -32,14 +32,13 @@ const ClientRoom = ({ userNo, socket, setUsers, setUserNo }) => {
         </h1>
       </div>
 
-      {/* Flexbox to display image and chatbox side by side */}
       <div className="d-flex ml-3">
-        {/* Left side: Canvas/Image */}
         <div className="col-md-7 mx-auto overflow-hidden border border-dark px-0  mt-3" style={{ height: "500px" }}>
           <img className="w-100 h-100" ref={imgRef} src="" alt="canvas" />
         </div>
         <div>
-          <Chatbox socket={socket}/>
+          <Chatbox socket={socket}  roomJoined={roomJoined}
+              setRoomJoined={setRoomJoined}/>
         </div>
       </div>
     </div>

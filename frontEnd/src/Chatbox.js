@@ -1,50 +1,39 @@
 import React, { useState, useEffect } from "react";
 
-const Chatbox = ({ socket }) => {
+const Chatbox = ({ socket ,roomJoined, setRoomJoined}) => {
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
 
-  // Listen for incoming messages and system notifications
   useEffect(() => {
-    // Listen for the 'message' event for chat messages
     socket.on("message", (data) => {
       setChatMessages((prevMessages) => [
         ...prevMessages,
-        `${data.username}: ${data.message}`, // Add the received message
+        `${data.username}: ${data.message}`, 
       ]);
     });
-
-    // Listen for 'user-status' event for join/leave notifications
     socket.on("user-status", (data) => {
-      // Add system notification to the chat
       setChatMessages((prevMessages) => [
         ...prevMessages,
-        `System: ${data.message}`, // Add the notification message
+        `System: ${data.message}`, 
       ]);
-      // Show a popup for join/leave messages
       alert(data.message);
     });
-
-    // Clean up when the component unmounts
     return () => {
       socket.off("message");
       socket.off("user-status");
     };
   }, [socket]);
 
-  // Handle chat submission
   const handleChatSubmit = (e) => {
     e.preventDefault();
     if (currentMessage.trim()) {
-      // Emit the message to the server
       socket.emit("messageResponse", currentMessage);
-
-      // Clear the input field
       setCurrentMessage("");
     }
   };
 
   return (
+    <div>
     <div
       style={{
         width: "300px",
@@ -89,7 +78,7 @@ const Chatbox = ({ socket }) => {
               marginBottom: "10px",
               padding: "8px",
               backgroundColor: msg.startsWith("System:")
-                ? "#ffd700" // Highlight system notifications
+                ? "#ffd700" 
                 : "#e0e0e0",
               borderRadius: "10px",
               fontSize: "14px",
@@ -130,6 +119,10 @@ const Chatbox = ({ socket }) => {
           Send
         </button>
       </form>
+    </div>
+    <div>
+      <button className="btn btn-danger w-100px m-5" onClick={()=>setRoomJoined(false)}>Leave</button>
+    </div>
     </div>
   );
 };

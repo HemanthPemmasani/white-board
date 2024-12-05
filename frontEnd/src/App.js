@@ -63,6 +63,8 @@ const App = () => {
               socket={socket}
               setUsers={setUsers}
               setUserNo={setUserNo}
+              roomJoined={roomJoined}
+              setRoomJoined={setRoomJoined}
             />
             
           ) : (
@@ -72,6 +74,8 @@ const App = () => {
               socket={socket}
               setUsers={setUsers}
               setUserNo={setUserNo}
+              roomJoined={roomJoined}
+              setRoomJoined={setRoomJoined}
             />
           )}
         </>

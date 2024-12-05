@@ -4,14 +4,14 @@ import Canvas from "./Canvas";
 import jsPDF from "jspdf";
 import Chatbox from "./Chatbox";
 
-const Room = ({ userNo, socket, setUsers, setUserNo }) => {
+const Room = ({ userNo, socket, setUsers, setUserNo,roomJoined, setRoomJoined }) => {
   const canvasRef = useRef(null);
   const ctx = useRef(null);
   const [color, setColor] = useState("#000000");
   const [elements, setElements] = useState([]);
   const [history, setHistory] = useState([]);
   const [tool, setTool] = useState("pencil");
-  const [eraserSize, setEraserSize] = useState(10); // New state for eraser size
+  const [eraserSize, setEraserSize] = useState(10); 
 
   useEffect(() => {
     socket.on("message", (data) => {
@@ -56,17 +56,9 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
 
   const exportToPDF = () => {
     const canvas = canvasRef.current;
-
-    // Create a jsPDF instance
     const pdf = new jsPDF("landscape");
-
-    // Convert the canvas to an image
     const imgData = canvas.toDataURL("image/png");
-
-    // Add the image to the PDF
     pdf.addImage(imgData, "PNG", 10, 10, 280, 140);
-
-    // Save the PDF
     pdf.save("drawing.pdf");
   };
 
@@ -203,7 +195,7 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
           DownloadPDF
         </button>
       </div>
-      {/* Display the eraser size slider below the tool selection */}
+     
       {tool === "eraser" && (
         <div className="row justify-content-center mt-3">
           <div className="col-md-3">
@@ -223,7 +215,7 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
           </div>
         </div>
       )}
-      <div style={{ display: "flex", flexDirection: "row" }}>
+      <div style={{ display: "flex", flexDirection: "row", justifyContent:"space-between" }}>
         <div>
           <Canvas
             canvasRef={canvasRef}
@@ -233,11 +225,12 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
             elements={elements}
             tool={tool}
             socket={socket}
-            eraserSize={eraserSize} // Pass eraser size to Canvas component
+            eraserSize={eraserSize} 
           />
         </div>
         <div>
-          <Chatbox socket={socket} />
+          <Chatbox socket={socket}  roomJoined={roomJoined}
+              setRoomJoined={setRoomJoined} />
         </div>
       </div>
     </div>
@@ -245,3 +238,7 @@ const Room = ({ userNo, socket, setUsers, setUserNo }) => {
 };
 
 export default Room;
+
+
+
+
